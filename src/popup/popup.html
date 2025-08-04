@@ -1,0 +1,49 @@
+
+// src/popup/popup.html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outline 파워 웹 클리퍼</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
+
+// package.json
+{
+  "name": "outline-power-web-clipper",
+  "version": "2.0.0",
+  "description": "강력한 기능을 갖춘 Outline Wiki 웹 클리퍼",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "clean": "rm -rf dist",
+    "package": "npm run build && cd dist && zip -r ../outline-clipper.zip *"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.4.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "turndown": "^7.1.2",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.251",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/turndown": "^5.0.4",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-loader": "^6.8.1",
+    "html-webpack-plugin": "^5.5.3",
+    "style-loader": "^3.3.3",
+    "ts-loader": "^9.5.0",
+    "typescript": "^5.2.2",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

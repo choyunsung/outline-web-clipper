@@ -1,0 +1,49 @@
+
+// src/content.css
+.outline-clipper-selection-menu {
+  position: absolute;
+  z-index: 999999;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  display: none;
+}
+
+.outline-clip-selection-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #4c6ef5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.outline-clip-selection-btn:hover {
+  background: #364fc7;
+}
+
+.outline-clipper-highlight {
+  outline: 3px solid #4c6ef5 !important;
+  outline-offset: 4px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    outline-color: #4c6ef5;
+  }
+  50% {
+    outline-color: #748ffc;
+  }
+  100% {
+    outline-color: #4c6ef5;
+  }
+}
