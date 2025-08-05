@@ -28,13 +28,26 @@ const Popup: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<{collectionId: string, parentDocumentId?: string}>({collectionId: ''});
   const [isClipping, setIsClipping] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'testing' | 'success' | 'error'>('none');
   const [errorMessage, setErrorMessage] = useState('');
   const [clipperMode, setClipperMode] = useState<ClipperMode>({ type: 'full' });
+  const [selectedElement, setSelectedElement] = useState<any>(null);
 
   useEffect(() => {
     loadSettings();
+    
+    // content script로부터 선택 메시지 수신
+    const handleMessage = (message: any) => {
+      if (message.action === 'elementSelected') {
+        setSelectedElement(message.content);
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(handleMessage);
+    
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
   }, []);
 
   const loadSettings = async () => {
@@ -129,6 +142,11 @@ const Popup: React.FC = () => {
       return;
     }
 
+    if (clipperMode.type === 'selection' && !selectedElement) {
+      setErrorMessage('먼저 웹페이지에서 영역을 선택해주세요');
+      return;
+    }
+
     setIsClipping(true);
     setErrorMessage('');
 
@@ -139,13 +157,27 @@ const Popup: React.FC = () => {
         throw new Error('활성 탭을 찾을 수 없습니다');
       }
 
-      const response = await chrome.runtime.sendMessage({
-        action: 'clip',
-        tabId: tab.id,
-        collectionId: selectedLocation.collectionId,
-        parentDocumentId: selectedLocation.parentDocumentId,
-        options: options
-      });
+      let response;
+      
+      if (clipperMode.type === 'selection' && selectedElement) {
+        // 선택 모드일 때는 이미 선택된 콘텐츠를 사용
+        response = await chrome.runtime.sendMessage({
+          action: 'clipSelectedContent',
+          content: selectedElement,
+          collectionId: selectedLocation.collectionId,
+          parentDocumentId: selectedLocation.parentDocumentId,
+          options: options
+        });
+      } else {
+        // 일반 모드
+        response = await chrome.runtime.sendMessage({
+          action: 'clip',
+          tabId: tab.id,
+          collectionId: selectedLocation.collectionId,
+          parentDocumentId: selectedLocation.parentDocumentId,
+          options: { ...options, mode: clipperMode.type }
+        });
+      }
 
       if (response.success) {
         await ConfigStorage.setLastSelectedLocation(selectedLocation);
@@ -167,19 +199,28 @@ const Popup: React.FC = () => {
     }
   };
 
+  const handleModeChange = async (mode: ClipperMode) => {
+    setClipperMode(mode);
+    
+    if (mode.type === 'selection') {
+      // 선택 영역 모드일 때 웹페이지에서 선택하도록 안내
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab.id) {
+        // content script에 선택 모드 시작 메시지 전송 (팝업은 열린 상태 유지)
+        await chrome.tabs.sendMessage(tab.id, { 
+          action: 'startSelectionMode',
+          temporary: true // 임시 선택 모드
+        });
+      }
+    }
+  };
+
 
   return (
     <div className="popup">
       <div className="header">
         <h2>Outline 파워 웹 클리퍼</h2>
         <div className="header-actions">
-          <button
-            className="icon-btn"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            title="고급 옵션"
-          >
-            🎛️
-          </button>
           <button
             className="icon-btn"
             onClick={() => setShowSettings(!showSettings)}
@@ -297,76 +338,6 @@ const Popup: React.FC = () => {
             저장
           </button>
         </div>
-      ) : showAdvanced ? (
-        <div className="advanced-options">
-          <h3>고급 옵션</h3>
-
-          <div className="clipper-modes">
-            <label className={clipperMode.type === 'full' ? 'active' : ''}>
-              <input
-                type="radio"
-                name="mode"
-                checked={clipperMode.type === 'full'}
-                onChange={() => setClipperMode({ type: 'full' })}
-              />
-              <span>📄 전체 페이지</span>
-            </label>
-
-            <label className={clipperMode.type === 'simplified' ? 'active' : ''}>
-              <input
-                type="radio"
-                name="mode"
-                checked={clipperMode.type === 'simplified'}
-                onChange={() => setClipperMode({ type: 'simplified' })}
-              />
-              <span>📝 단순화</span>
-            </label>
-
-            <label className={clipperMode.type === 'selection' ? 'active' : ''}>
-              <input
-                type="radio"
-                name="mode"
-                checked={clipperMode.type === 'selection'}
-                onChange={() => setClipperMode({ type: 'selection' })}
-              />
-              <span>✂️ 선택 영역</span>
-            </label>
-          </div>
-
-          <div className="format-options">
-            <label>
-              <input
-                type="checkbox"
-                checked={options.simplifyContent}
-                onChange={(e) => setOptions({ ...options, simplifyContent: e.target.checked })}
-              />
-              콘텐츠 단순화
-            </label>
-
-            <label>
-              <input
-                type="checkbox"
-                checked={options.keepFormatting}
-                onChange={(e) => setOptions({ ...options, keepFormatting: e.target.checked })}
-              />
-              원본 포맷 유지
-            </label>
-          </div>
-
-          <button
-            className="highlight-btn"
-            onClick={highlightContent}
-          >
-            🔍 메인 콘텐츠 미리보기
-          </button>
-
-          <button
-            className="back-btn"
-            onClick={() => setShowAdvanced(false)}
-          >
-            돌아가기
-          </button>
-        </div>
       ) : (
         <div className="clipper">
           {collections.length > 0 ? (
@@ -387,6 +358,42 @@ const Popup: React.FC = () => {
                 </select>
               </div>
 
+              <div className="clipper-modes">
+                <button 
+                  className={`mode-btn ${clipperMode.type === 'full' ? 'active' : ''}`}
+                  onClick={() => handleModeChange({ type: 'full' })}
+                  title="전체 페이지를 저장합니다"
+                >
+                  📄 전체
+                </button>
+                <button 
+                  className={`mode-btn ${clipperMode.type === 'simplified' ? 'active' : ''}`}
+                  onClick={() => handleModeChange({ type: 'simplified' })}
+                  title="광고와 불필요한 요소를 제거하고 저장합니다"
+                >
+                  📝 단순화
+                </button>
+                <button 
+                  className={`mode-btn selection-mode ${clipperMode.type === 'selection' ? 'active' : ''}`}
+                  onClick={() => handleModeChange({ type: 'selection' })}
+                  title="특정 영역을 선택하여 저장합니다"
+                >
+                  ✂️ 선택
+                </button>
+              </div>
+
+              {clipperMode.type === 'selection' && selectedElement && (
+                <div className="selection-status">
+                  ✅ 영역이 선택되었습니다
+                </div>
+              )}
+
+              {clipperMode.type === 'selection' && !selectedElement && (
+                <div className="selection-instruction">
+                  👆 웹페이지에서 저장할 영역을 클릭하세요
+                </div>
+              )}
+
               <div className="quick-options">
                 <label className="quick-option">
                   <input
@@ -396,21 +403,12 @@ const Popup: React.FC = () => {
                   />
                   <span>🖼️ 이미지 업로드</span>
                 </label>
-
-                <label className="quick-option">
-                  <input
-                    type="checkbox"
-                    checked={options.simplifyContent}
-                    onChange={(e) => setOptions({ ...options, simplifyContent: e.target.checked })}
-                  />
-                  <span>📝 단순화</span>
-                </label>
               </div>
 
               <button
                 className="clip-btn"
                 onClick={handleClip}
-                disabled={isClipping || !selectedLocation.collectionId}
+                disabled={isClipping || !selectedLocation.collectionId || (clipperMode.type === 'selection' && !selectedElement)}
               >
                 {isClipping ? (
                   <>

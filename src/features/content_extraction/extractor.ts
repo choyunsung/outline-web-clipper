@@ -698,4 +698,41 @@ export class ContentExtractor {
     }
     return hash;
   }
+
+  async extractElementContent(element: HTMLElement): Promise<PageContent> {
+    // 요소를 복제하여 작업
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    
+    // 불필요한 요소 제거
+    const unwantedSelectors = [
+      'script', 'style', 'noscript', 'iframe', 
+      '.ads', '.advertisement', '.social-share',
+      '[class*="popup"]', '[class*="modal"]'
+    ];
+    
+    unwantedSelectors.forEach(selector => {
+      clonedElement.querySelectorAll(selector).forEach(el => el.remove());
+    });
+    
+    // HTML을 마크다운으로 변환
+    const html = clonedElement.outerHTML;
+    let markdown = this.turndown.turndown(html);
+    
+    // 링크 처리
+    markdown = LinkProcessor.processLinks(markdown);
+    
+    const images = await this.extractImages(html);
+    
+    // 제목 추출 (요소 내의 첫 번째 heading 또는 document title)
+    const heading = element.querySelector('h1, h2, h3, h4, h5, h6');
+    const title = heading?.textContent?.trim() || document.title;
+    
+    return {
+      title,
+      content: markdown,
+      url: window.location.href,
+      images,
+      selection: ''
+    };
+  }
 }
