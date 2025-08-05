@@ -13,7 +13,8 @@
     "dev": "webpack --mode development --watch",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "package": "npm run build && cd dist && bestzip ../outline-clipper.zip *",
+    "package": "node scripts/package.js",
+    "package-old": "npm run build && cd dist && bestzip ../releases/outline-clipper.zip *",
     "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit"
   },
