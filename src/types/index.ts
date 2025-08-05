@@ -37,6 +37,7 @@ export interface ImageInfo {
   alt?: string;
   width?: number;
   height?: number;
+  isContentImage?: boolean;
 }
 
 export interface Collection {
@@ -45,6 +46,15 @@ export interface Collection {
   description?: string;
   color?: string;
   icon?: string;
+  documents?: Document[];
+}
+
+export interface Document {
+  id: string;
+  title: string;
+  collectionId: string;
+  parentDocumentId?: string;
+  children?: Document[];
 }
 
 export interface ClipperMode {

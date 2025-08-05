@@ -5,12 +5,10 @@ import { ClipperMode } from './types';
 
 class ContentScript {
   private extractor: ContentExtractor;
-  private selectionMenu: HTMLElement | null = null;
 
   constructor() {
     this.extractor = new ContentExtractor();
     this.setupListeners();
-    this.setupSelectionMenu();
   }
 
   private setupListeners() {
@@ -51,68 +49,6 @@ class ContentScript {
     }
   }
 
-  private setupSelectionMenu() {
-    document.addEventListener('mouseup', (e) => {
-      const selection = window.getSelection();
-      if (selection && selection.toString().trim().length > 0) {
-        this.showSelectionMenu(e);
-      } else {
-        this.hideSelectionMenu();
-      }
-    });
-
-    document.addEventListener('mousedown', (e) => {
-      if (this.selectionMenu && !this.selectionMenu.contains(e.target as Node)) {
-        this.hideSelectionMenu();
-      }
-    });
-  }
-
-  private showSelectionMenu(event: MouseEvent) {
-    if (!this.selectionMenu) {
-      this.createSelectionMenu();
-    }
-
-    if (this.selectionMenu) {
-      this.selectionMenu.style.left = `${event.pageX}px`;
-      this.selectionMenu.style.top = `${event.pageY + 10}px`;
-      this.selectionMenu.style.display = 'block';
-    }
-  }
-
-  private hideSelectionMenu() {
-    if (this.selectionMenu) {
-      this.selectionMenu.style.display = 'none';
-    }
-  }
-
-  private createSelectionMenu() {
-    this.selectionMenu = document.createElement('div');
-    this.selectionMenu.className = 'outline-clipper-selection-menu';
-    this.selectionMenu.innerHTML = `
-      <button class="outline-clip-selection-btn">
-        📎 Outline에 저장
-      </button>
-    `;
-
-    const button = this.selectionMenu.querySelector('button');
-    button?.addEventListener('click', () => {
-      this.clipSelection();
-      this.hideSelectionMenu();
-    });
-
-    document.body.appendChild(this.selectionMenu);
-  }
-
-  private async clipSelection() {
-    const selection = await this.extractor.extractSelection();
-    if (selection) {
-      chrome.runtime.sendMessage({
-        action: 'clipSelection',
-        content: selection
-      });
-    }
-  }
 
   private highlightMainContent() {
     const article = document.querySelector('article, main, [role="main"]');

@@ -2,22 +2,22 @@
 // src/features/templates/default.ts
 export const defaultTemplates = {
   article: `{{#if author}}
-> 👤 **저자**: {{author}}
+> 👤 **저자**: {{author}}\n
 {{/if}}
 {{#if publishedDate}}
-> 📅 **발행일**: {{publishedDate}}
+> 📅 **발행일**: {{publishedDate}}\n
 {{/if}}
 {{#if sourceUrl}}
-> 🔗 **원본**: [{{sourceUrl}}]({{sourceUrl}})
+> 🔗 **원본**: [{{sourceUrl}}]({{sourceUrl}})\n
 {{/if}}
 {{#if timestamp}}
-> 📎 **클리핑**: {{timestamp}}
+> 📎 **클리핑**: {{timestamp}}\n
 {{/if}}
 
 ---
 
 {{#if excerpt}}
-**요약**: {{excerpt}}
+**요약**: {{excerpt}}\n
 {{/if}}
 
 {{content}}
@@ -32,7 +32,7 @@ export const defaultTemplates = {
 
   simple: `# {{title}}
 
-> 출처: {{sourceUrl}}
+> 출처: {{sourceUrl}}\n
 
 {{content}}`,
 
@@ -55,7 +55,4 @@ export const defaultTemplates = {
 - {{this}}
 {{/each}}
 {{/if}}
-
----
-*이 문서는 웹 클리퍼로 자동 생성되었습니다.*`
-};
+`};

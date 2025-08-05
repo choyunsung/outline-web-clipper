@@ -9,8 +9,8 @@ import './popup.css';
 
 const Popup: React.FC = () => {
   const [config, setConfig] = useState<OutlineConfig>({
-    apiUrl: '',
-    apiToken: '',
+    apiUrl: 'https://docs.jhome.xyz',
+    apiToken: 'ol_api_iCGAnnxRJKeSD8eAMBRX9CP40mEZnPJIvOEeHZ',
     defaultCollectionId: ''
   });
   const [options, setOptions] = useState<ClipperOptions>({
@@ -25,20 +25,16 @@ const Popup: React.FC = () => {
     tags: []
   });
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [selectedCollection, setSelectedCollection] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<{collectionId: string, parentDocumentId?: string}>({collectionId: ''});
   const [isClipping, setIsClipping] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'testing' | 'success' | 'error'>('none');
   const [errorMessage, setErrorMessage] = useState('');
   const [clipperMode, setClipperMode] = useState<ClipperMode>({ type: 'full' });
-  const [recentClips, setRecentClips] = useState<any[]>([]);
-  const [duplicateCheck, setDuplicateCheck] = useState<any[]>([]);
 
   useEffect(() => {
     loadSettings();
-    loadRecentClips();
-    checkForDuplicates();
   }, []);
 
   const loadSettings = async () => {
@@ -47,7 +43,8 @@ const Popup: React.FC = () => {
 
     if (savedConfig) {
       setConfig(savedConfig);
-      setSelectedCollection(savedConfig.defaultCollectionId || '');
+      const lastSelected = await ConfigStorage.getLastSelectedLocation();
+      setSelectedLocation(lastSelected || {collectionId: savedConfig.defaultCollectionId || ''});
       if (savedConfig.apiUrl && savedConfig.apiToken) {
         loadCollections(savedConfig);
       } else {
@@ -68,36 +65,18 @@ const Popup: React.FC = () => {
       });
 
       if (response.success) {
+        console.log('Popup에서 받은 컬렉션:', response.collections);
         setCollections(response.collections);
-        if (response.collections.length > 0 && !selectedCollection) {
-          setSelectedCollection(response.collections[0].id);
+        if (response.collections.length > 0 && !selectedLocation.collectionId) {
+          setSelectedLocation({collectionId: response.collections[0].id});
         }
+      } else {
+        console.error('컬렉션 로드 실패:', response.error);
+        setErrorMessage(`컬렉션 로드 실패: ${response.error}`);
       }
     } catch (error) {
       console.error('컬렉션 로드 실패:', error);
-    }
-  };
-
-  const loadRecentClips = async () => {
-    const clips = await ConfigStorage.getRecentClips();
-    setRecentClips(clips);
-  };
-
-  const checkForDuplicates = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab.url) {
-        const response = await chrome.runtime.sendMessage({
-          action: 'searchDuplicates',
-          url: tab.url
-        });
-
-        if (response.success && response.documents.length > 0) {
-          setDuplicateCheck(response.documents);
-        }
-      }
-    } catch (error) {
-      console.error('중복 확인 실패:', error);
+      setErrorMessage('컬렉션 로드 중 오류가 발생했습니다');
     }
   };
 
@@ -137,14 +116,15 @@ const Popup: React.FC = () => {
   const saveConfig = async () => {
     const configToSave = {
       ...config,
-      defaultCollectionId: selectedCollection
+      defaultCollectionId: selectedLocation.collectionId
     };
     await ConfigStorage.setConfig(configToSave);
     await ConfigStorage.setClipperOptions(options);
+    await ConfigStorage.setLastSelectedLocation(selectedLocation);
   };
 
   const handleClip = async () => {
-    if (!selectedCollection) {
+    if (!selectedLocation.collectionId) {
       setErrorMessage('컬렉션을 선택해주세요');
       return;
     }
@@ -162,12 +142,13 @@ const Popup: React.FC = () => {
       const response = await chrome.runtime.sendMessage({
         action: 'clip',
         tabId: tab.id,
-        collectionId: selectedCollection,
+        collectionId: selectedLocation.collectionId,
+        parentDocumentId: selectedLocation.parentDocumentId,
         options: options
       });
 
       if (response.success) {
-        await loadRecentClips();
+        await ConfigStorage.setLastSelectedLocation(selectedLocation);
         window.close();
       } else {
         setErrorMessage(response.error || '저장 실패');
@@ -185,6 +166,7 @@ const Popup: React.FC = () => {
       await chrome.tabs.sendMessage(tab.id, { action: 'highlightContent' });
     }
   };
+
 
   return (
     <div className="popup">
@@ -207,13 +189,6 @@ const Popup: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {duplicateCheck.length > 0 && (
-        <div className="duplicate-warning">
-          <span>⚠️ 이미 저장된 문서가 있을 수 있습니다</span>
-          <button onClick={() => setDuplicateCheck([])}>✕</button>
-        </div>
-      )}
 
       {showSettings ? (
         <div className="settings">
@@ -400,8 +375,8 @@ const Popup: React.FC = () => {
                 <label htmlFor="collection">컬렉션 선택</label>
                 <select
                   id="collection"
-                  value={selectedCollection}
-                  onChange={(e) => setSelectedCollection(e.target.value)}
+                  value={selectedLocation.collectionId}
+                  onChange={(e) => setSelectedLocation({collectionId: e.target.value})}
                 >
                   <option value="">컬렉션을 선택하세요</option>
                   {collections.map((col) => (
@@ -435,7 +410,7 @@ const Popup: React.FC = () => {
               <button
                 className="clip-btn"
                 onClick={handleClip}
-                disabled={isClipping || !selectedCollection}
+                disabled={isClipping || !selectedLocation.collectionId}
               >
                 {isClipping ? (
                   <>
@@ -447,23 +422,6 @@ const Popup: React.FC = () => {
                 )}
               </button>
 
-              {recentClips.length > 0 && (
-                <div className="recent-clips">
-                  <h4>최근 저장</h4>
-                  <ul>
-                    {recentClips.slice(0, 3).map((clip, index) => (
-                      <li key={index}>
-                        <a href="#" onClick={(e) => {
-                          e.preventDefault();
-                          chrome.tabs.create({ url: `${config.apiUrl}/doc/${clip.documentId}` });
-                        }}>
-                          {clip.title}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </>
           ) : (
             <div className="no-config">

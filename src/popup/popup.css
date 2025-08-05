@@ -1,5 +1,4 @@
 
-// src/popup/popup.css
 .popup {
   width: 380px;
   min-height: 200px;
@@ -351,6 +350,128 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.collection-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
+.collection-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  border: 1px solid #dee2e6;
+}
+
+.collection-checkbox:hover {
+  background: #e9ecef;
+}
+
+.collection-checkbox input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.collection-checkbox span {
+  font-size: 14px;
+  color: #333;
+}
+
+.location-selector {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background: #f8f9fa;
+}
+
+.collection-group {
+  border-bottom: 1px solid #e9ecef;
+}
+
+.collection-group:last-child {
+  border-bottom: none;
+}
+
+.collection-radio,
+.document-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.collection-radio:hover,
+.document-radio:hover {
+  background: #e9ecef;
+}
+
+.collection-radio input[type="radio"],
+.document-radio input[type="radio"] {
+  width: auto;
+  margin: 0;
+}
+
+.collection-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.document-tree {
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+.document-item {
+  border-bottom: 1px solid #e9ecef;
+}
+
+.document-item:last-child {
+  border-bottom: none;
+}
+
+.document-radio {
+  background: #f8f9fa;
+  padding-left: 24px;
+}
+
+.document-item.level-1 .document-radio {
+  padding-left: 36px;
+}
+
+.document-item.level-2 .document-radio {
+  padding-left: 48px;
+}
+
+.document-item.level-3 .document-radio {
+  padding-left: 60px;
+}
+
+.document-name {
+  font-size: 13px;
+  color: #666;
+}
+
+.document-children {
+  border-left: 2px solid #dee2e6;
+  margin-left: 20px;
 }
 
 

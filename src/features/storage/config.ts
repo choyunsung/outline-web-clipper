@@ -47,4 +47,22 @@ export class ConfigStorage {
     const trimmedClips = recentClips.slice(0, 10);
     await chrome.storage.local.set({ recentClips: trimmedClips });
   }
+
+  static async getLastSelectedCollections(): Promise<string[] | null> {
+    const result = await chrome.storage.local.get(['lastSelectedCollections']);
+    return result.lastSelectedCollections || null;
+  }
+
+  static async setLastSelectedCollections(collections: string[]): Promise<void> {
+    await chrome.storage.local.set({ lastSelectedCollections: collections });
+  }
+
+  static async getLastSelectedLocation(): Promise<{collectionId: string, parentDocumentId?: string} | null> {
+    const result = await chrome.storage.local.get(['lastSelectedLocation']);
+    return result.lastSelectedLocation || null;
+  }
+
+  static async setLastSelectedLocation(location: {collectionId: string, parentDocumentId?: string}): Promise<void> {
+    await chrome.storage.local.set({ lastSelectedLocation: location });
+  }
 }

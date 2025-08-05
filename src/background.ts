@@ -52,7 +52,7 @@ async function handleMessage(request: any, sender: any, sendResponse: Function) 
   try {
     switch (request.action) {
       case 'clip':
-        const result = await clipWithOptions(request.tabId, request.options, request.collectionId);
+        const result = await clipWithOptions(request.tabId, request.options, request.collectionId, request.parentDocumentId);
         sendResponse(result);
         break;
 
@@ -71,6 +71,11 @@ async function handleMessage(request: any, sender: any, sendResponse: Function) 
       case 'getCollections':
         const collectionsResult = await getCollections(request.config);
         sendResponse(collectionsResult);
+        break;
+
+      case 'getCollectionDocuments':
+        const documentsResult = await getCollectionDocuments(request.config, request.collectionId);
+        sendResponse(documentsResult);
         break;
 
       case 'captureScreenshot':
@@ -100,9 +105,25 @@ async function testOutlineConnection(config: any) {
 }
 
 async function getCollections(config: any) {
-  const client = new OutlineClient(config);
-  const collections = await client.getCollections();
-  return { success: true, collections };
+  try {
+    const client = new OutlineClient(config);
+    const collections = await client.getCollections(false); // 문서는 나중에 로드
+    return { success: true, collections };
+  } catch (error: any) {
+    console.error('컬렉션 로드 오류:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function getCollectionDocuments(config: any, collectionId: string) {
+  try {
+    const client = new OutlineClient(config);
+    const documents = await client.getCollectionDocuments(collectionId);
+    return { success: true, documents };
+  } catch (error: any) {
+    console.error('문서 로드 오류:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 async function searchDuplicates(url: string) {
@@ -119,7 +140,8 @@ async function searchDuplicates(url: string) {
 async function clipWithOptions(
   tabId: number,
   options: ClipperOptions,
-  collectionId?: string
+  collectionId?: string,
+  parentDocumentId?: string
 ): Promise<any> {
   try {
     // 콘텐츠 추출
@@ -132,7 +154,7 @@ async function clipWithOptions(
       throw new Error(response.error);
     }
 
-    return await processClip(response.content, tabId, collectionId);
+    return await processClip(response.content, tabId, collectionId, parentDocumentId);
   } catch (error: any) {
     console.error('클리핑 오류:', error);
     throw error;
@@ -142,7 +164,8 @@ async function clipWithOptions(
 async function processClip(
   content: PageContent,
   tabId: number,
-  collectionId?: string
+  collectionId?: string,
+  parentDocumentId?: string
 ): Promise<any> {
   try {
     // 설정 가져오기
@@ -157,11 +180,18 @@ async function processClip(
     // 이미지 업로드 및 URL 교체
     let processedContent = content.content;
     if (options.uploadImages && content.images.length > 0) {
-      showProgress('이미지 업로드 중...', 0);
-      processedContent = await client.processImagesInContent(
-        processedContent,
-        content.images
-      );
+      try {
+        showProgress('이미지 업로드 중...', 0);
+        console.log(`${content.images.length}개의 이미지 업로드 시작`);
+        processedContent = await client.processImagesInContent(
+          processedContent,
+          content.images
+        );
+        console.log('이미지 처리 완료');
+      } catch (error: any) {
+        console.warn('이미지 업로드 중 오류 발생, 원본 콘텐츠 사용:', error.message);
+        // 이미지 업로드 실패해도 원본 콘텐츠로 계속 진행
+      }
     }
 
     // 콘텐츠 포맷팅
@@ -173,10 +203,16 @@ async function processClip(
       throw new Error('컬렉션을 선택해주세요');
     }
 
+    // 제목을 100자로 제한 (Outline API 요구사항)
+    const truncatedTitle = truncateTitle(content.title);
+    
     const result = await client.createDocument(
-      content.title,
+      truncatedTitle,
       formattedContent,
-      targetCollectionId
+      targetCollectionId,
+      {
+        parentDocumentId
+      }
     );
 
     // 최근 클립 저장
@@ -226,8 +262,9 @@ async function clipScreenshot(tabId: number) {
     const dataUrl = await captureTabScreenshot(tabId);
 
     // 스크린샷을 Markdown 이미지로 변환
+    const screenshotTitle = `스크린샷 - ${new Date().toLocaleString('ko-KR')}`;
     const content: PageContent = {
-      title: `스크린샷 - ${new Date().toLocaleString('ko-KR')}`,
+      title: truncateTitle(screenshotTitle),
       content: `![스크린샷](${dataUrl})`,
       url: (await chrome.tabs.get(tabId)).url || '',
       images: [{
@@ -310,4 +347,18 @@ function showProgress(message: string, progress: number) {
     message,
     progress
   });
+}
+
+function truncateTitle(title: string): string {
+  if (!title) {
+    return '제목 없음';
+  }
+  
+  // 100자 제한
+  if (title.length <= 100) {
+    return title;
+  }
+  
+  // 100자로 자르고 끝에 ... 추가 (총 100자)
+  return title.substring(0, 97) + '...';
 }
