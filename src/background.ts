@@ -90,6 +90,16 @@ async function handleMessage(request: any, sender: any, sendResponse: Function) 
         sendResponse(searchResult);
         break;
 
+      case 'clipSelectedContent':
+        const selectedResult = await processClip(
+          request.content, 
+          sender.tab?.id || 0,
+          request.collectionId,
+          request.parentDocumentId
+        );
+        sendResponse(selectedResult);
+        break;
+
       default:
         sendResponse({ success: false, error: '알 수 없는 액션' });
     }
