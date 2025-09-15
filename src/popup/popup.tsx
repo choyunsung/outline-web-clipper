@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client';
 import { ConfigStorage } from '../features/storage/config';
 import { OutlineClient } from '../features/outline_integration/client';
 import { OutlineConfig, ClipperOptions, Collection, ClipperMode } from '../types';
+import { UploadStateStorage, UploadState } from '../features/storage/upload-state';
 import './popup.css';
 
 const Popup: React.FC = () => {
@@ -32,23 +33,58 @@ const Popup: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [clipperMode, setClipperMode] = useState<ClipperMode>({ type: 'full' });
   const [selectedElement, setSelectedElement] = useState<any>(null);
+  const [uploadState, setUploadState] = useState<UploadState | null>(null);
 
   useEffect(() => {
     loadSettings();
-    
+    checkUploadState();
+
     // content script로부터 선택 메시지 수신
     const handleMessage = (message: any) => {
       if (message.action === 'elementSelected') {
         setSelectedElement(message.content);
       }
     };
-    
+
     chrome.runtime.onMessage.addListener(handleMessage);
-    
+
+    // 업로드 상태를 주기적으로 체크
+    const interval = setInterval(() => {
+      checkUploadState();
+    }, 1000);
+
     return () => {
       chrome.runtime.onMessage.removeListener(handleMessage);
+      clearInterval(interval);
     };
   }, []);
+
+  const checkUploadState = async () => {
+    const state = await UploadStateStorage.getState();
+    setUploadState(state);
+
+    // 업로드 중이면 클리핑 중 상태로 설정
+    if (state && state.isUploading) {
+      setIsClipping(true);
+      const progress = Math.round((state.currentIndex / state.totalImages) * 100);
+      setErrorMessage(`📤 이미지 업로드 중... ${state.currentIndex}/${state.totalImages} (${progress}%)`);
+    } else if (!state || !state.isUploading) {
+      // 업로드가 완료되거나 없으면 상태 초기화
+      if (isClipping && uploadState?.isUploading) {
+        setIsClipping(false);
+        setErrorMessage('');
+      }
+    }
+  };
+
+  const handleStopUpload = async () => {
+    await UploadStateStorage.requestStop();
+    setErrorMessage('⏹️ 업로드 중지 요청...');
+    // 잠시 후 상태 체크
+    setTimeout(() => {
+      checkUploadState();
+    }, 500);
+  };
 
   const loadSettings = async () => {
     const savedConfig = await ConfigStorage.getConfig();
@@ -181,7 +217,17 @@ const Popup: React.FC = () => {
 
       if (response.success) {
         await ConfigStorage.setLastSelectedLocation(selectedLocation);
-        window.close();
+        // 이미지 업로드가 포함된 경우 잠시 대기 (진행 상황 표시)
+        if (options.uploadImages && response.imageCount > 0) {
+          setErrorMessage(`✅ 문서 저장 완료. ${response.imageCount}개 이미지 처리 중...`);
+          // 이미지 개수에 따라 대기 시간 조정
+          const waitTime = Math.min(3000 + (response.imageCount * 500), 10000);
+          setTimeout(() => {
+            window.close();
+          }, waitTime);
+        } else {
+          window.close();
+        }
       } else {
         setErrorMessage(response.error || '저장 실패');
       }
@@ -419,6 +465,17 @@ const Popup: React.FC = () => {
                   '📎 Outline에 저장'
                 )}
               </button>
+
+              {/* 업로드 진행 중일 때 중지 버튼 표시 */}
+              {uploadState && uploadState.isUploading && (
+                <button
+                  className="stop-btn"
+                  onClick={handleStopUpload}
+                  title="업로드 중지"
+                >
+                  ⏹️ 업로드 중지
+                </button>
+              )}
 
             </>
           ) : (

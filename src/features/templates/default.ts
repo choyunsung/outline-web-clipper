@@ -16,10 +16,6 @@ export const defaultTemplates = {
 
 ---
 
-{{#if excerpt}}
-**요약**: {{excerpt}}\n
-{{/if}}
-
 {{content}}
 
 {{#if highlights}}

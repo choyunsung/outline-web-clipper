@@ -33,6 +33,7 @@ export interface PageContent {
 
 export interface ImageInfo {
   originalUrl: string;
+  markdownUrl?: string;  // Markdown 콘텐츠 내 실제 URL (교체용)
   outlineUrl?: string;
   alt?: string;
   width?: number;

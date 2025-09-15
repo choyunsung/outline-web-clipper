@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload State Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .content {
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>업로드 상태 지속성 테스트 페이지</h1>
+
+    <div class="content">
+        <p>이 페이지는 Outline Web Clipper의 업로드 상태 지속성을 테스트하기 위한 페이지입니다.</p>
+
+        <h2>테스트 시나리오</h2>
+        <ol>
+            <li>이 페이지를 Outline에 저장 (많은 이미지 포함)</li>
+            <li>업로드 진행 중 팝업을 닫기</li>
+            <li>팝업을 다시 열어서 업로드 진행 상태 확인</li>
+            <li>중지 버튼으로 업로드 중단 가능한지 확인</li>
+        </ol>
+
+        <h2>테스트 이미지들</h2>
+        <p>아래는 다양한 테스트 이미지들입니다:</p>
+
+        <!-- 많은 수의 이미지를 포함하여 업로드 시간을 길게 만듦 -->
+        <img src="https://picsum.photos/400/300?random=1" alt="Test Image 1">
+        <img src="https://picsum.photos/400/300?random=2" alt="Test Image 2">
+        <img src="https://picsum.photos/400/300?random=3" alt="Test Image 3">
+        <img src="https://picsum.photos/400/300?random=4" alt="Test Image 4">
+        <img src="https://picsum.photos/400/300?random=5" alt="Test Image 5">
+        <img src="https://picsum.photos/400/300?random=6" alt="Test Image 6">
+        <img src="https://picsum.photos/400/300?random=7" alt="Test Image 7">
+        <img src="https://picsum.photos/400/300?random=8" alt="Test Image 8">
+        <img src="https://picsum.photos/400/300?random=9" alt="Test Image 9">
+        <img src="https://picsum.photos/400/300?random=10" alt="Test Image 10">
+        <img src="https://picsum.photos/400/300?random=11" alt="Test Image 11">
+        <img src="https://picsum.photos/400/300?random=12" alt="Test Image 12">
+        <img src="https://picsum.photos/400/300?random=13" alt="Test Image 13">
+        <img src="https://picsum.photos/400/300?random=14" alt="Test Image 14">
+        <img src="https://picsum.photos/400/300?random=15" alt="Test Image 15">
+        <img src="https://picsum.photos/400/300?random=16" alt="Test Image 16">
+        <img src="https://picsum.photos/400/300?random=17" alt="Test Image 17">
+        <img src="https://picsum.photos/400/300?random=18" alt="Test Image 18">
+        <img src="https://picsum.photos/400/300?random=19" alt="Test Image 19">
+        <img src="https://picsum.photos/400/300?random=20" alt="Test Image 20">
+
+        <h2>상대 경로 이미지 테스트</h2>
+        <img src="./test-image.png" alt="Relative path test">
+        <img src="../images/another-test.jpg" alt="Parent directory test">
+
+        <h2>테스트 결과</h2>
+        <p>업로드 진행 중:</p>
+        <ul>
+            <li>팝업을 닫고 다시 열어도 진행 상태가 표시되는가?</li>
+            <li>진행률이 정확하게 표시되는가?</li>
+            <li>중지 버튼이 표시되는가?</li>
+            <li>중지 버튼을 누르면 업로드가 중단되는가?</li>
+        </ul>
+    </div>
+</body>
+</html>
